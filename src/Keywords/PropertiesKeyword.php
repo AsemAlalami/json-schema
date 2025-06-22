@@ -93,6 +93,8 @@ class PropertiesKeyword implements Keyword
             }
         }
 
+        /** @see https://github.com/opis/json-schema/pull/149 */
+        $context->addCheckedProperties($checked);
         $context->addEvaluatedProperties($evaluated);
 
         if (!$errors->isEmpty()) {
@@ -101,8 +103,6 @@ class PropertiesKeyword implements Keyword
             ], $errors);
         }
         unset($errors);
-
-        $context->addCheckedProperties($checked);
 
         return null;
     }
