@@ -17,7 +17,7 @@
 
 namespace Opis\JsonSchema\Schemas;
 
-use Opis\JsonSchema\{Helper, Keyword, ValidationContext, KeywordValidator};
+use Opis\JsonSchema\{Errors\ErrorContainer, Helper, Keyword, ValidationContext, KeywordValidator};
 use Opis\JsonSchema\Info\{DataInfo, SchemaInfo};
 use Opis\JsonSchema\Errors\ValidationError;
 use Opis\JsonSchema\KeywordValidators\CallbackKeywordValidator;
@@ -73,22 +73,30 @@ class ObjectSchema extends AbstractSchema
     /**
      * @param ValidationContext $context
      * @return null|ValidationError
-     *@internal
+     * @internal
      */
     public function doValidate(ValidationContext $context): ?ValidationError
     {
+        $errors = new ErrorContainer($context->maxErrors());
+
         if ($this->before && ($error = $this->applyKeywords($this->before, $context))) {
-            return $error;
+            if (($res = $this->handleError($errors, $error, $context)) !== null) {
+                return $res;
+            }
         }
 
         if ($this->types && ($type = $context->currentDataType())) {
             if (isset($this->types[$type]) && ($error = $this->applyKeywords($this->types[$type], $context))) {
-                return $error;
+                if (($res = $this->handleError($errors, $error, $context)) !== null) {
+                    return $res;
+                }
             }
 
             if (($type = Helper::getJsonSuperType($type)) && isset($this->types[$type])) {
                 if ($error = $this->applyKeywords($this->types[$type], $context)) {
-                    return $error;
+                    if (($res = $this->handleError($errors, $error, $context)) !== null) {
+                        return $res;
+                    }
                 }
             }
 
@@ -96,7 +104,43 @@ class ObjectSchema extends AbstractSchema
         }
 
         if ($this->after && ($error = $this->applyKeywords($this->after, $context))) {
+            if (($res = $this->handleError($errors, $error, $context)) !== null) {
+                return $res;
+            }
+        }
+
+        if (!$errors->isEmpty()) {
+            return new ValidationError(
+                '',
+                $this,
+                DataInfo::fromContext($context),
+                'Data must match schema',
+                [],
+                $errors->all()
+            );
+        }
+        unset($errors);
+
+        return null;
+    }
+
+    private function handleError(ErrorContainer $errors, ValidationError $error, ValidationContext $context): ?ValidationError
+    {
+        if ($context->stopAtFirstError()) {
             return $error;
+        }
+
+        $errors->add($error);
+
+        if ($errors->isFull()) {
+            return new ValidationError(
+                '',
+                $this,
+                DataInfo::fromContext($context),
+                'Data must match schema',
+                [],
+                $errors->all()
+            );
         }
 
         return null;

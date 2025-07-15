@@ -28,6 +28,7 @@ class AllOfKeyword implements Keyword
 {
     use OfTrait;
     use ErrorTrait;
+    use IterableDataValidationTrait;
 
     /** @var bool[]|object[] */
     protected array $value;
@@ -47,6 +48,8 @@ class AllOfKeyword implements Keyword
     {
         $object = $this->createArrayObject($context);
 
+        $errors = $this->errorContainer($context->maxErrors());
+
         foreach ($this->value as $index => $value) {
             if ($value === true) {
                 continue;
@@ -65,13 +68,25 @@ class AllOfKeyword implements Keyword
 
             if ($error = $context->validateSchemaWithoutEvaluated($value, null, false, $object)) {
                 $this->addEvaluatedFromArrayObject($object, $context);
-                return $this->error($schema, $context, 'allOf', 'The data should match all schemas', [
-                    'index' => $index,
-                ], $error);
+
+                if ($context->stopAtFirstError()) {
+                    return $this->error($schema, $context, 'allOf', 'The data should match all schemas', [
+                        'index' => $index,
+                    ], $error);
+                } else {
+                    $errors->add($error);
+                    if ($errors->isFull()) {
+                        break;
+                    }
+                }
             }
         }
 
         $this->addEvaluatedFromArrayObject($object, $context);
+
+        if (!$errors->isEmpty()) {
+            return $this->error($schema, $context, 'allOf', 'The data should match all schemas', [], $errors);
+        }
 
         return null;
     }

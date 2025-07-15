@@ -55,7 +55,9 @@ class EnumKeyword implements Keyword
             }
         }
 
-        return $this->error($schema, $context, 'enum', 'The data should match one item from enum');
+        return $this->error($schema, $context, 'enum', 'The data should match one item from enum', [
+            'enum' => $this->enum[$type] ?? [],
+        ]);
     }
 
     /**
