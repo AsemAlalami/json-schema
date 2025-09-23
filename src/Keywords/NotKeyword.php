@@ -61,6 +61,6 @@ class NotKeyword implements Keyword
             return null;
         }
 
-        return $this->error($schema, $context, 'not', 'The data must not match schema');
+        return $this->error($schema, $context, 'not', 'The data does not match schema', ['error' => (array)$schema->info()->data()]);
     }
 }
