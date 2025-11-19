@@ -297,8 +297,8 @@ final class Helper
 
         // use bcmath
 
-        $number = number_format($number, $scale, '.', '');
-        $divisor = number_format($divisor, $scale, '.', '');
+        $number  = bcadd($number, '0', $scale);
+        $divisor = bcadd($divisor, '0', $scale);
 
         // number can be zero after formatting
         if (!(float)$divisor) {
